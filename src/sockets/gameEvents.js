@@ -1,23 +1,43 @@
 const rooms = {};
 
 const handleGameEvents = (io, socket) => {
-    socket.on('joinRoom', ({ roomId, username }) => {
+    socket.on('joinRoom', ({ roomId, username, playerId }) => {
+        if (!playerId) playerId = socket.id;
+
         let room = rooms[roomId];
+
+        socket.join(roomId);
+        socket.roomId = roomId;
+        socket.playerId = playerId;
+
+        if (room && room.players[playerId]) {
+            // Reconnecting player
+            const player = room.players[playerId];
+            if (player.disconnectTimer) {
+                clearTimeout(player.disconnectTimer);
+                player.disconnectTimer = null;
+            }
+            player.socketId = socket.id;
+            
+            io.to(roomId).emit('roomUpdate', {
+                players: Object.values(room.players),
+                gameMaster: room.gameMaster,
+                state: room.state
+            });
+            return;
+        }
 
         if (room && room.state === 'playing') {
             socket.emit('errorMsg', 'Game is already in progress. You cannot join right now.');
             return;
         }
 
-        socket.join(roomId);
-        socket.roomId = roomId;
-
         if (!room) {
             // Create new room
             room = {
                 id: roomId,
                 players: {},
-                gameMaster: socket.id,
+                gameMaster: playerId,
                 state: 'waiting', // waiting, playing
                 question: null,
                 answer: null,
@@ -28,8 +48,9 @@ const handleGameEvents = (io, socket) => {
         }
 
         // Add player
-        room.players[socket.id] = {
-            id: socket.id,
+        room.players[playerId] = {
+            id: playerId,
+            socketId: socket.id,
             username,
             score: 0,
             attempts: 3
@@ -49,52 +70,56 @@ const handleGameEvents = (io, socket) => {
 
     socket.on('disconnect', () => {
         const roomId = socket.roomId;
-        if (!roomId || !rooms[roomId]) return;
+        const playerId = socket.playerId;
+        if (!roomId || !rooms[roomId] || !playerId) return;
 
         const room = rooms[roomId];
-        const player = room.players[socket.id];
-        if (player) {
-            io.to(roomId).emit('chatMessage', {
-                sender: 'System',
-                text: `${player.username} has left the game.`
-            });
-            delete room.players[socket.id];
-        }
-
-        const playerIds = Object.keys(room.players);
-        if (playerIds.length === 0) {
-            // Delete room if empty
-            if (room.timer) clearInterval(room.timer);
-            delete rooms[roomId];
-        } else {
-            // If game master left, assign new game master
-            if (room.gameMaster === socket.id) {
-                room.gameMaster = playerIds[0];
+        const player = room.players[playerId];
+        if (player && player.socketId === socket.id) {
+            // Give the player a few seconds to reconnect before removing them
+            player.disconnectTimer = setTimeout(() => {
                 io.to(roomId).emit('chatMessage', {
                     sender: 'System',
-                    text: `${room.players[room.gameMaster].username} is the new Game Master.`
+                    text: `${player.username} has left the game.`
                 });
-            }
-            
-            // If game is playing and only 1 or less players left (excluding GM, or maybe GM is the only one left)
-            // we should probably end the game. For simplicity, we just let it be or end it.
-            if (room.state === 'playing' && playerIds.length < 2) {
-                endGame(io, roomId, null, "Not enough players to continue.");
-            }
+                delete room.players[playerId];
 
-            io.to(roomId).emit('roomUpdate', {
-                players: Object.values(room.players),
-                gameMaster: room.gameMaster,
-                state: room.state
-            });
+                const playerIds = Object.keys(room.players);
+                if (playerIds.length === 0) {
+                    // Delete room if empty
+                    if (room.timer) clearInterval(room.timer);
+                    delete rooms[roomId];
+                } else {
+                    // If game master left, assign new game master
+                    if (room.gameMaster === playerId) {
+                        room.gameMaster = playerIds[0];
+                        io.to(roomId).emit('chatMessage', {
+                            sender: 'System',
+                            text: `${room.players[room.gameMaster].username} is the new Game Master.`
+                        });
+                    }
+                    
+                    // If game is playing and only 1 or less players left (excluding GM, or maybe GM is the only one left)
+                    if (room.state === 'playing' && playerIds.length < 2) {
+                        endGame(io, roomId, null, "Not enough players to continue.");
+                    }
+
+                    io.to(roomId).emit('roomUpdate', {
+                        players: Object.values(room.players),
+                        gameMaster: room.gameMaster,
+                        state: room.state
+                    });
+                }
+            }, 3000); // 3 seconds grace period
         }
     });
 
     socket.on('startGame', ({ question, answer }) => {
         const roomId = socket.roomId;
+        const playerId = socket.playerId;
         const room = rooms[roomId];
 
-        if (!room || room.gameMaster !== socket.id) return;
+        if (!room || room.gameMaster !== playerId) return;
         if (Object.keys(room.players).length <= 2) {
             socket.emit('errorMsg', 'Need more than two players to start the game.');
             return;
@@ -134,15 +159,16 @@ const handleGameEvents = (io, socket) => {
 
     socket.on('sendGuess', (guess) => {
         const roomId = socket.roomId;
+        const playerId = socket.playerId;
         const room = rooms[roomId];
 
         if (!room) return;
         
-        const player = room.players[socket.id];
+        const player = room.players[playerId];
         if (!player) return;
 
         // If it's a regular chat (game not playing, or user is GM)
-        if (room.state !== 'playing' || room.gameMaster === socket.id) {
+        if (room.state !== 'playing' || room.gameMaster === playerId) {
             io.to(roomId).emit('chatMessage', {
                 sender: player.username,
                 text: guess

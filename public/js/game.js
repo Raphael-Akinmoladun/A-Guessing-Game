@@ -21,11 +21,16 @@ const scoreboardEl = document.getElementById("scoreboard");
 let isGameMaster = false;
 let gameState = "waiting";
 let currentUsername = null;
+let playerId = sessionStorage.getItem("playerId");
+if (!playerId) {
+  playerId = Math.random().toString(36).substring(2, 15);
+  sessionStorage.setItem("playerId", playerId);
+}
 
 // Join Room - now wrapped in ensureUsername
 ensureUsername((username) => {
   currentUsername = username;
-  socket.emit("joinRoom", { roomId: ROOM_ID, username });
+  socket.emit("joinRoom", { roomId: ROOM_ID, username, playerId });
 });
 
 // Room Update
@@ -34,7 +39,7 @@ socket.on("roomUpdate", ({ players, gameMaster, state }) => {
   playerCountEl.textContent = `Players: ${players.length}`;
 
   // Check if I am Game Master
-  isGameMaster = socket.id === gameMaster;
+  isGameMaster = playerId === gameMaster;
 
   // Update Scoreboard
   scoreboardEl.innerHTML = "";
@@ -43,7 +48,7 @@ socket.on("roomUpdate", ({ players, gameMaster, state }) => {
     pEl.className = `p-2 rounded ${p.id === gameMaster ? "bg-purple-100 border border-purple-300" : "bg-gray-100"}`;
     pEl.innerHTML = `
             <div class="flex justify-between items-center">
-                <span class="font-semibold ${p.id === socket.id ? "text-blue-600" : "text-gray-800"}">
+                <span class="font-semibold ${p.id === playerId ? "text-blue-600" : "text-gray-800"}">
                     ${p.username} ${p.id === gameMaster ? "👑" : ""}
                 </span>
                 <span class="font-bold text-green-600">${p.score} pts</span>
