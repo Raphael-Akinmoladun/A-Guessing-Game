@@ -1,0 +1,106 @@
+<%- include('partials/header') %> <%- include('partials/username-modal') %>
+
+<div class="flex-grow flex p-4 gap-4 h-[100vh]">
+  <!-- Main Chat / Game Area -->
+  <div
+    class="flex-1 flex flex-col bg-white rounded-lg shadow-md overflow-hidden"
+  >
+    <!-- Header -->
+    <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+      <h2 class="text-xl font-bold">Room: <%= roomId %></h2>
+      <div id="playerCount" class="text-sm">Players: 0</div>
+      <div id="gameStatus" class="text-sm font-semibold">
+        Waiting to start...
+      </div>
+    </div>
+
+    <!-- Game Master Controls -->
+    <div id="gmControls" class="p-4 bg-gray-50 border-b hidden">
+      <h3 class="font-bold mb-2 text-purple-700">👑 Game Master Controls</h3>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="questionInput"
+          placeholder="Enter question"
+          class="flex-1 px-3 py-2 border rounded"
+        />
+        <input
+          type="text"
+          id="answerInput"
+          placeholder="Enter answer"
+          class="w-1/3 px-3 py-2 border rounded"
+        />
+        <button
+          id="startGameBtn"
+          class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 disabled:opacity-50"
+        >
+          Start Game
+        </button>
+      </div>
+      <p id="gmError" class="text-red-500 text-sm mt-1 hidden"></p>
+    </div>
+
+    <!-- Active Question Area -->
+    <div id="activeQuestionArea" class="p-4 bg-yellow-50 border-b hidden">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">
+            Question:
+            <span id="currentQuestion" class="font-normal text-blue-700"></span>
+          </h3>
+          <p class="text-sm text-gray-600">
+            Attempts left: <span id="attemptsLeft" class="font-bold">3</span>
+          </p>
+        </div>
+        <div class="text-3xl font-mono font-bold text-red-500" id="timer">
+          60
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat / Events List -->
+    <div
+      id="chatMessages"
+      class="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col gap-2"
+    >
+      <!-- Messages will appear here -->
+    </div>
+
+    <!-- Chat Input -->
+    <div class="p-4 bg-white border-t" id="chatInputArea">
+      <form id="chatForm" class="flex gap-2">
+        <input
+          type="text"
+          id="chatInput"
+          placeholder="Type your guess or message..."
+          class="flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          type="submit"
+          class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
+          id="sendBtn"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sidebar: Scoreboard -->
+  <div class="w-64 bg-white rounded-lg shadow-md flex flex-col overflow-hidden">
+    <div class="bg-gray-800 text-white p-4">
+      <h2 class="text-lg font-bold">Players & Scores</h2>
+    </div>
+    <div id="scoreboard" class="flex-1 p-4 overflow-y-auto flex flex-col gap-2">
+      <!-- Players will be listed here -->
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const ROOM_ID = "<%= roomId %>";
+</script>
+<script src="/js/game.js"></script>
+
+<%- include('partials/footer') %>

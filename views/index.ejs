@@ -1,0 +1,57 @@
+<%- include('partials/header') %> <%- include('partials/username-modal') %>
+
+<div class="flex-grow flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">
+      Guessing Game
+    </h1>
+
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Create a New Game</h2>
+      <button
+        id="createRoomBtn"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Create Session
+      </button>
+    </div>
+
+    <div class="border-t border-gray-300 pt-6">
+      <h2 class="text-xl font-semibold mb-2">Join a Game</h2>
+      <input
+        type="text"
+        id="roomIdInput"
+        placeholder="Enter Room ID"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300 mb-3"
+      />
+      <button
+        id="joinRoomBtn"
+        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Join Session
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("createRoomBtn").addEventListener("click", () => {
+    ensureUsername((username) => {
+      const roomId = Math.random().toString(36).substring(2, 8);
+      window.location.href = `/room/${roomId}`;
+    });
+  });
+
+  document.getElementById("joinRoomBtn").addEventListener("click", () => {
+    const roomId = document.getElementById("roomIdInput").value.trim();
+    if (roomId) {
+      ensureUsername((username) => {
+        window.location.href = `/room/${roomId}`;
+      });
+    } else {
+      alert("Please enter a room ID");
+    }
+  });
+</script>
+
+<%- include('partials/footer') %>

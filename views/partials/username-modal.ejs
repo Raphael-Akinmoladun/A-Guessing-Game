@@ -1,0 +1,61 @@
+<!-- Username Modal -->
+<div id="usernameModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm mx-4 transform transition-all">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">Welcome to Guessing Game</h3>
+        <p class="text-gray-600 mb-4 text-sm text-center">Please enter a username to continue.</p>
+        
+        <form id="usernameForm" class="space-y-4">
+            <div>
+                <input 
+                    type="text" 
+                    id="usernameInput" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    placeholder="e.g. Angel123"
+                    required
+                    minlength="2"
+                    maxlength="20"
+                >
+                <p id="usernameError" class="text-red-500 text-xs mt-1 hidden">Please enter a valid username.</p>
+            </div>
+            
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+                Join Game
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Logic -->
+<script>
+    const modal = document.getElementById('usernameModal');
+    const form = document.getElementById('usernameForm');
+    const input = document.getElementById('usernameInput');
+    const error = document.getElementById('usernameError');
+
+    // Check username globally
+    function ensureUsername(callback) {
+        const existingUsername = sessionStorage.getItem('username');
+        if (existingUsername) {
+            callback(existingUsername);
+        } else {
+            modal.classList.remove('hidden');
+            input.focus();
+            
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const val = input.value.trim();
+                if (val.length < 2) {
+                    error.classList.remove('hidden');
+                    return;
+                }
+                
+                sessionStorage.setItem('username', val);
+                modal.classList.add('hidden');
+                callback(val);
+            };
+        }
+    }
+</script>
